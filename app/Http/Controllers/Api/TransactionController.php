@@ -305,6 +305,22 @@ class TransactionController extends Controller
         ]);
     }
 
+    /**
+     * Writer history
+     */
+    public function writerHistory(Request $request)
+    {
+        $transactions = Transaction::where('user_id', $request->user()->id)
+            ->with(['book', 'payment'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->per_page ?? 15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $transactions
+        ]);
+    }
+
     private function getStatusText($status)
     {
         $statuses = [

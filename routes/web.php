@@ -94,6 +94,10 @@ Route::prefix('writer')->name('writer.')->group(function () {
         return view('writer.dashboard');
     })->name('dashboard');
 
+    Route::get('/history', function () {
+        return view('writer.history');
+    })->name('history');
+
     Route::get('/messages', function () {
         return view('writer.messages');
     })->name('messages');

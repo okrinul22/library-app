@@ -510,6 +510,10 @@
                     <i class="fas fa-upload me-1"></i> Upload Content
                 </button>
 
+                <a href="{{ route('writer.history') }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-history me-1"></i> My Books
+                </a>
+
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
                         <div class="user-avatar-circle" id="userAvatar">W</div>
@@ -750,31 +754,21 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <label for="bookPrice" class="form-label">Price <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="bookPrice" name="price" required min="0" step="0.01" placeholder="0.00">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="bookPrice" class="form-label">Price (IDR) <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="number" class="form-control" id="bookPrice" name="price" required min="0" step="1" placeholder="0">
+                                        </div>
+                                        <small class="text-secondary">Enter price in Indonesian Rupiah</small>
                                     </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label for="bookStock" class="form-label">Stock <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="bookStock" name="stock" required min="0" placeholder="0">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label for="bookYear" class="form-label">Published Year <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="bookYear" name="published_year" required min="1900" max="2099" placeholder="2024">
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="bookDescription" class="form-label">Description</label>
-                                    <textarea class="form-control" id="bookDescription" name="description" rows="3" placeholder="Book description..."></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="bookIsFree" name="is_free">
-                                        <label class="form-check-label" for="bookIsFree">
-                                            This book is free
-                                        </label>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" id="bookIsFree" name="is_free" onchange="togglePriceField()">
+                                            <label class="form-check-label" for="bookIsFree">
+                                                This book is free
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -804,6 +798,92 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="uploadSubmitBtn" onclick="submitUpload()">Upload Content</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Detail Modal -->
+    <div class="modal fade" id="bookDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookDetailTitle">Book Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="bookDetailContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="borrowBookBtn">Borrow Book</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Borrow Modal -->
+    <div class="modal fade" id="borrowModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Borrow Book - Upload Payment Proof</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="borrowForm">
+                        <input type="hidden" id="borrowBookId" name="book_id">
+
+                        <div class="mb-3">
+                            <label for="paymentProof" class="form-label">Upload Payment Proof</label>
+                            <input type="file" class="form-control" id="paymentProof" accept="image/*" required>
+                            <small class="text-secondary">Upload screenshot of transfer receipt (max 5MB)</small>
+                        </div>
+
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Payment proof will be verified by admin before confirmation.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="submitBorrowBtn" class="btn btn-primary" onclick="submitBorrowForm()">
+                        <span class="btn-text">Submit & Borrow</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Content Modal -->
+    <div class="modal fade" id="editContentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Content</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editContentForm">
+                        <input type="hidden" id="editContentId" name="content_id">
+                        <div class="mb-3">
+                            <label for="editContentTitle" class="form-label">Content Title</label>
+                            <input type="text" class="form-control" id="editContentTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editContentFile" class="form-label">Upload New Word Document (.docx)</label>
+                            <div class="file-drop-zone" id="editFileDropZone">
+                                <i class="fas fa-file-word fa-3x mb-2" style="color: var(--text-secondary);"></i>
+                                <p class="mb-1">Drag & drop your file here or click to browse</p>
+                                <p style="font-size: 12px; color: var(--text-secondary);">Leave empty to keep existing file</p>
+                                <input type="file" id="editContentFile" name="file" accept=".doc,.docx" style="display: none;">
+                            </div>
+                            <div id="editFileName" style="margin-top: 8px; font-size: 13px; color: var(--secondary-color);"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitEditContent()">Update Content</button>
                 </div>
             </div>
         </div>
@@ -866,7 +946,8 @@
         // Load stats
         async function loadStats() {
             try {
-                const response = await fetch(`${API_URL}/writer/books`, {
+                // Get total books
+                const booksResponse = await fetch(`${API_URL}/writer/books`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
@@ -875,11 +956,29 @@
                     credentials: 'same-origin'
                 });
 
-                const result = await response.json();
-
-                if (result.success) {
-                    const books = result.data.data;
+                const booksResult = await booksResponse.json();
+                if (booksResult.success) {
+                    const books = booksResult.data.data;
                     document.getElementById('totalBooks').textContent = books.length;
+                }
+
+                // Get contents for approved/pending stats
+                const contentsResponse = await fetch(`${API_URL}/writer/contents`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const contentsResult = await contentsResponse.json();
+                if (contentsResult.success) {
+                    const contents = contentsResult.data;
+                    const approved = contents.filter(c => c.status === 'approved').length;
+                    const pending = contents.filter(c => c.status === 'pending').length;
+                    document.getElementById('approvedContents').textContent = approved;
+                    document.getElementById('pendingContents').textContent = pending;
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
@@ -979,9 +1078,17 @@
                     <td><span class="badge ${content.status === 'approved' ? 'badge-approved' : 'badge-pending'}">${content.status}</span></td>
                     <td>${new Date(content.created_at).toLocaleDateString('id-ID')}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="deleteContent(${content.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="previewContent(${content.id})" title="Preview">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="editContent(${content.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteContent(${content.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -1167,18 +1274,20 @@
             const author = document.getElementById('bookAuthor').value.trim();
             const isbn = document.getElementById('bookIsbn').value.trim();
             const genre = document.getElementById('bookGenre').value;
-            const price = document.getElementById('bookPrice').value;
-            const stock = document.getElementById('bookStock').value;
-            const publishedYear = document.getElementById('bookYear').value;
-            const description = document.getElementById('bookDescription').value.trim();
+            const price = document.getElementById('bookIsFree').checked ? 0 : document.getElementById('bookPrice').value;
             const isFree = document.getElementById('bookIsFree').checked;
 
             const contentTitle = document.getElementById('newBookContentTitle').value.trim();
             const contentFile = document.getElementById('newBookContentFile').files[0];
 
             // Validate book fields
-            if (!title || !author || !isbn || !genre || !price || !stock || !publishedYear) {
+            if (!title || !author || !isbn || !genre) {
                 showAlert('Please fill in all required book fields', 'error');
+                return;
+            }
+
+            if (!isFree && !price) {
+                showAlert('Please enter a price or mark as free', 'error');
                 return;
             }
 
@@ -1190,8 +1299,8 @@
 
             // Create book first
             const bookData = {
-                title, author, isbn, genre, price, stock, published_year: publishedYear,
-                description, is_free: isFree
+                title, author, isbn, genre, price, stock: 100, published_year: new Date().getFullYear(),
+                description: '', is_free: isFree
             };
 
             const bookResponse = await fetch(`${API_URL}/writer/books`, {
@@ -1230,16 +1339,31 @@
             const contentResult = await contentResponse.json();
 
             if (contentResult.success) {
+                const newBookId = bookResult.data.id;
                 showAlert('Book and content created successfully!', 'success');
                 bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
                 document.getElementById('newBookForm').reset();
                 document.getElementById('newBookFileName').textContent = '';
                 // Switch back to existing tab
                 document.getElementById('existing-tab').click();
-                loadBooks();
+                // Refresh all data
+                await loadBooks();
+                await loadContents();
+                await loadStats();
+                // Refresh the dropdown and select the new book
+                await loadBooksForSelect(newBookId);
             } else {
                 showAlert(contentResult.message || 'Failed to upload content', 'error');
             }
+        }
+
+        // Toggle price field
+        function togglePriceField() {
+            const isFree = document.getElementById('bookIsFree').checked;
+            const priceField = document.getElementById('bookPrice');
+            priceField.disabled = isFree;
+            priceField.value = isFree ? '0' : '';
+            priceField.required = !isFree;
         }
 
         // Toggle browse sidebar
@@ -1317,7 +1441,7 @@
             }
 
             list.innerHTML = books.map(book => `
-                <div class="sidebar-book-item" onclick="alert('Book: ${book.title}')">
+                <div class="sidebar-book-item" onclick="viewBookDetail(${book.id})">
                     <div class="d-flex gap-3">
                         ${book.cover_image
                             ? `<img src="/storage/${book.cover_image}" alt="${book.title}" class="sidebar-book-cover">`
@@ -1353,7 +1477,7 @@
         });
 
         // Load books for select dropdown
-        async function loadBooksForSelect() {
+        async function loadBooksForSelect(selectedBookId = null) {
             try {
                 const response = await fetch(`${API_URL}/writer/books`, {
                     headers: {
@@ -1372,9 +1496,327 @@
                         result.data.data.map(book =>
                             `<option value="${book.id}">${book.title}</option>`
                         ).join('');
+                    // Auto-select the specified book
+                    if (selectedBookId) {
+                        select.value = selectedBookId;
+                    }
                 }
             } catch (error) {
                 console.error('Error loading books for select:', error);
+            }
+        }
+
+        // View book detail (from browse sidebar)
+        async function viewBookDetail(id) {
+            try {
+                const response = await fetch(`${API_URL}/books/${id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const book = result.data;
+                    const modal = document.getElementById('bookDetailModal');
+
+                    document.getElementById('bookDetailTitle').textContent = book.title;
+
+                    const isFree = book.is_free;
+                    const priceDisplay = isFree
+                        ? '<span class="badge badge-success fs-6">FREE</span>'
+                        : `<span class="text-warning fs-5 fw-bold">${formatCurrency(book.price)}</span>`;
+
+                    document.getElementById('bookDetailContent').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                ${book.cover_image
+                                    ? `<img src="/storage/${book.cover_image}" class="img-fluid rounded" style="max-height: 350px;">`
+                                    : `<div class="book-cover-placeholder rounded" style="height: 350px; background: var(--dark-bg); display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-book fa-4x text-secondary"></i>
+                                       </div>`
+                                }
+                            </div>
+                            <div class="col-md-8">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="text-secondary mb-1">Author</h6>
+                                        <p class="mb-0">${book.author}</p>
+                                    </div>
+                                    <div class="text-end">
+                                        <h6 class="text-secondary mb-1">Price</h6>
+                                        ${priceDisplay}
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-sm-6">
+                                        <h6 class="text-secondary mb-1">Genre</h6>
+                                        <span class="badge bg-primary">${book.genre}</span>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <h6 class="text-secondary mb-1">Stock</h6>
+                                        <span class="badge ${book.stock > 5 ? 'bg-success' : book.stock > 0 ? 'bg-warning' : 'bg-danger'}">
+                                            ${book.stock} available
+                                        </span>
+                                    </div>
+                                </div>
+
+                                ${book.description ? `
+                                    <div class="mb-3">
+                                        <h6 class="text-secondary">Description</h6>
+                                        <p class="text-secondary mb-0">${book.description}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${isFree ? `
+                                    <div class="alert alert-success mb-0">
+                                        <i class="fas fa-gift me-2"></i>
+                                        <strong>Free Book!</strong> Borrow this book without any payment.
+                                    </div>
+                                ` : `
+                                    <div class="alert alert-info mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Paid Book</strong> - You'll need to upload payment proof to borrow this book.
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    `;
+
+                    const borrowBtn = document.getElementById('borrowBookBtn');
+                    const modalFooter = borrowBtn.parentElement;
+
+                    if (book.stock > 0) {
+                        borrowBtn.style.display = 'block';
+                        borrowBtn.disabled = false;
+                        borrowBtn.className = isFree ? 'btn btn-success' : 'btn btn-primary';
+                        borrowBtn.innerHTML = isFree
+                            ? '<i class="fas fa-book-reader me-2"></i>Borrow Now (Free)'
+                            : '<i class="fas fa-credit-card me-2"></i>Borrow with Payment';
+                        borrowBtn.onclick = () => borrowBook(book.id, isFree);
+                    } else {
+                        borrowBtn.style.display = 'none';
+                    }
+
+                    new bootstrap.Modal(modal).show();
+                }
+            } catch (error) {
+                console.error('Error viewing book:', error);
+                showAlert('Failed to load book details', 'error');
+            }
+        }
+
+        // Borrow book function
+        async function borrowBook(id, isFree = false) {
+            if (isFree) {
+                // Free books can be borrowed directly
+                try {
+                    const response = await fetch(`${API_URL}/member/books/${id}/borrow-free`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': CSRF_TOKEN
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showAlert('Book borrowed successfully!', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('bookDetailModal')).hide();
+                        loadBooks();
+                    } else {
+                        showAlert(result.message || 'Failed to borrow book', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error borrowing book:', error);
+                    showAlert('Failed to borrow book', 'error');
+                }
+            } else {
+                // For paid books, show the borrow modal
+                bootstrap.Modal.getInstance(document.getElementById('bookDetailModal')).hide();
+                const modal = document.getElementById('borrowModal');
+                document.getElementById('borrowBookId').value = id;
+                new bootstrap.Modal(modal).show();
+            }
+        }
+
+        // Submit borrow form with payment proof
+        async function submitBorrowForm() {
+            const bookId = document.getElementById('borrowBookId').value;
+            const proofFile = document.getElementById('paymentProof').files[0];
+
+            if (!proofFile) {
+                showAlert('Please upload payment proof', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('payment_proof', proofFile);
+
+            try {
+                const response = await fetch(`${API_URL}/member/books/${bookId}/borrow`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Book borrowed successfully! Waiting for admin approval.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('borrowModal')).hide();
+                    bootstrap.Modal.getInstance(document.getElementById('bookDetailModal')).hide();
+                    loadBooks();
+                } else {
+                    showAlert(result.message || 'Failed to borrow book', 'error');
+                }
+            } catch (error) {
+                console.error('Error borrowing book:', error);
+                showAlert('Failed to borrow book', 'error');
+            }
+        }
+
+        // Preview content
+        async function previewContent(id) {
+            try {
+                const response = await fetch(`${API_URL}/writer/contents/${id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const content = result.data;
+                    // Open in new tab to read
+                    if (content.file_path) {
+                        window.open(`/storage/${content.file_path}`, '_blank');
+                    } else {
+                        showAlert('Content file not available', 'error');
+                    }
+                } else {
+                    showAlert(result.message || 'Failed to load content', 'error');
+                }
+            } catch (error) {
+                console.error('Error previewing content:', error);
+                showAlert('Failed to preview content', 'error');
+            }
+        }
+
+        // Edit content
+        async function editContent(id) {
+            try {
+                const response = await fetch(`${API_URL}/writer/contents/${id}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const content = result.data;
+                    document.getElementById('editContentId').value = content.id;
+                    document.getElementById('editContentTitle').value = content.title;
+                    document.getElementById('editFileName').textContent = content.file_path ? `Current: ${content.file_path}` : '';
+
+                    // Setup file drop zone for edit
+                    const editDropZone = document.getElementById('editFileDropZone');
+                    const editContentFile = document.getElementById('editContentFile');
+
+                    editDropZone.onclick = () => editContentFile.click();
+
+                    editDropZone.ondragover = (e) => {
+                        e.preventDefault();
+                        editDropZone.style.borderColor = 'var(--primary-color)';
+                    };
+
+                    editDropZone.ondragleave = () => {
+                        editDropZone.style.borderColor = 'var(--dark-border)';
+                    };
+
+                    editDropZone.ondrop = (e) => {
+                        e.preventDefault();
+                        editDropZone.style.borderColor = 'var(--dark-border)';
+                        if (e.dataTransfer.files.length) {
+                            editContentFile.files = e.dataTransfer.files;
+                            document.getElementById('editFileName').textContent = `Selected: ${e.dataTransfer.files[0].name}`;
+                        }
+                    };
+
+                    editContentFile.onchange = () => {
+                        if (editContentFile.files[0]) {
+                            document.getElementById('editFileName').textContent = `Selected: ${editContentFile.files[0].name}`;
+                        }
+                    };
+
+                    new bootstrap.Modal(document.getElementById('editContentModal')).show();
+                } else {
+                    showAlert(result.message || 'Failed to load content', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading content:', error);
+                showAlert('Failed to load content', 'error');
+            }
+        }
+
+        // Submit edit content
+        async function submitEditContent() {
+            const contentId = document.getElementById('editContentId').value;
+            const title = document.getElementById('editContentTitle').value.trim();
+            const file = document.getElementById('editContentFile').files[0];
+
+            if (!title) {
+                showAlert('Please enter a title', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            if (file) {
+                formData.append('file', file);
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/writer/contents/${contentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Content updated successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editContentModal')).hide();
+                    loadContents();
+                } else {
+                    showAlert(result.message || 'Failed to update content', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating content:', error);
+                showAlert('Failed to update content', 'error');
             }
         }
     </script>

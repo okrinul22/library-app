@@ -104,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/writer/contents', [ContentController::class, 'writerContents']);
     Route::post('/writer/contents/upload', [ContentController::class, 'writerUpload']);
     Route::post('/writer/books', [BookController::class, 'writerStoreBook']);
+    Route::get('/writer/history', [TransactionController::class, 'writerHistory']);
     Route::get('/writer/messages', [DashboardController::class, 'writerMessages']);
     Route::post('/writer/messages', [DashboardController::class, 'writerSendMessage']);
 });
