@@ -109,11 +109,14 @@ function formatCurrency(amount) {
 
 // Format date
 function formatDate(date) {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
     return new Intl.DateTimeFormat('id-ID', {
         day: 'numeric',
         month: 'long',
         year: 'numeric'
-    }).format(new Date(date));
+    }).format(d);
 }
 
 // Alerts functionality

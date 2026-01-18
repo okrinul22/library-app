@@ -15,16 +15,17 @@ class Transaction extends Model
         'user_id',
         'book_id',
         'payment_id',
-        'borrow_date',
+        'transaction_date',
         'due_date',
         'return_date',
         'status',
+        'payment_proof',
     ];
 
     protected function casts(): array
     {
         return [
-            'borrow_date' => 'date',
+            'transaction_date' => 'date',
             'due_date' => 'date',
             'return_date' => 'date',
             'status' => 'string',

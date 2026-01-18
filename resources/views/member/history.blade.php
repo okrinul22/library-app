@@ -191,6 +191,81 @@
         .empty-state p {
             color: var(--text-secondary);
         }
+
+        /* Payment Proof Upload Modal */
+        .modal-content {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            color: var(--text-primary);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--dark-border);
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--dark-border);
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        .form-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .form-control {
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            color: var(--text-primary);
+        }
+
+        .form-control:focus {
+            background: var(--dark-bg);
+            border-color: var(--primary-color);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--dark-border);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .payment-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
     </style>
 </head>
 <body>
@@ -250,6 +325,50 @@
         </div>
     </main>
 
+    <!-- Payment Proof Upload Modal -->
+    <div class="modal fade" id="paymentProofModal" tabindex="-1" aria-labelledby="paymentProofModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentProofModalLabel">Upload Payment Proof</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="paymentProofForm">
+                        <input type="hidden" id="transactionId" name="transaction_id">
+
+                        <div class="mb-3">
+                            <label class="form-label">Book</label>
+                            <div class="fw-bold" id="modalBookTitle">-</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Amount to Pay</label>
+                            <div class="payment-amount" id="modalAmount">-</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Payment Proof (PNG/JPG)</label>
+                            <div class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p class="mb-0">Click to upload or drag and drop</p>
+                                <small class="text-secondary">PNG or JPG up to 2MB</small>
+                            </div>
+                            <input type="file" id="paymentProofFile" name="proof" accept="image/png,image/jpeg,image/jpg" class="d-none">
+                            <img id="previewImage" class="preview-image d-none" alt="Preview">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitPaymentProof()">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -257,6 +376,7 @@
         const API_URL = window.location.origin + '/api';
         const CSRF_TOKEN = '{{ csrf_token() }}';
         const AUTH_TOKEN = localStorage.getItem('token');
+        let currentTransactionForPayment = null;
 
         // Show alert
         function showAlert(message, type = 'success') {
@@ -273,13 +393,49 @@
             }, 5000);
         }
 
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
         // Format date
         function formatDate(date) {
+            if (!date) return '-';
+            const d = new Date(date);
+            if (isNaN(d.getTime())) return '-';
             return new Intl.DateTimeFormat('id-ID', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
-            }).format(new Date(date));
+            }).format(d);
+        }
+
+        // Get status badge class
+        function getStatusBadgeClass(status) {
+            const classes = {
+                'active': 'success',
+                'completed': 'info',
+                'overdue': 'danger',
+                'pending_payment': 'warning',
+                'cancelled': 'danger'
+            };
+            return classes[status] || 'info';
+        }
+
+        // Get status text
+        function getStatusText(status) {
+            const texts = {
+                'active': 'Active',
+                'completed': 'Completed',
+                'overdue': 'Overdue',
+                'pending_payment': 'Pending Payment',
+                'cancelled': 'Cancelled'
+            };
+            return texts[status] || status;
         }
 
         // Load history data
@@ -330,37 +486,162 @@
                 return;
             }
 
-            tbody.innerHTML = transactions.map(trx => `
-                <tr>
-                    <td>
-                        <div class="d-flex gap-3">
-                            ${trx.book?.cover_image
-                                ? `<img src="/storage/${trx.book.cover_image}" alt="${trx.book.title}" class="book-cover" style="width: 50px; height: 75px; object-fit: cover; border-radius: 6px;">`
-                                : `<div class="book-cover-placeholder" style="width: 50px; height: 75px; display: flex; align-items: center; justify-content: center; background: var(--dark-bg); border-radius: 6px;"><i class="fas fa-book"></i></div>`
-                            }
-                            <div>
-                                <h6 class="mb-1">${trx.book?.title || 'N/A'}</h6>
-                                <p class="text-secondary small">ISBN: ${trx.book?.isbn || '-'}</p>
+            tbody.innerHTML = transactions.map(trx => {
+                let actionButton = '';
+
+                if (trx.status === 'pending_payment') {
+                    actionButton = `<button class="btn btn-sm btn-warning" onclick="openPaymentModal(${trx.id})">
+                        <i class="fas fa-upload me-1"></i> Upload Payment
+                    </button>`;
+                } else if (trx.status === 'active' || trx.status === 'completed') {
+                    // Check if book has chapters to read
+                    const hasChapter = trx.book?.first_chapter;
+                    const canRead = trx.status === 'active' || trx.status === 'completed';
+
+                    actionButton = `<div class="btn-group btn-group-sm" role="group">`;
+
+                    if (canRead && hasChapter) {
+                        actionButton += `<a href="/member/read/${trx.book.first_chapter.id}" class="btn btn-sm btn-primary" title="Read Book">
+                            <i class="fas fa-book-reader"></i> Read
+                        </a>`;
+                    }
+
+                    if (trx.status === 'active') {
+                        actionButton += `<button class="btn btn-sm btn-success" onclick="returnBook(${trx.id})" title="Return Book">
+                            <i class="fas fa-undo"></i>
+                        </button>`;
+                    } else if (trx.status === 'completed') {
+                        actionButton += `<span class="text-secondary ms-2"><i class="fas fa-check"></i> Returned</span>`;
+                    }
+
+                    actionButton += `</div>`;
+                } else {
+                    actionButton = `<span class="text-secondary">${getStatusText(trx.status)}</span>`;
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="d-flex gap-3">
+                                ${trx.book?.cover_image
+                                    ? `<img src="/storage/${trx.book.cover_image}" alt="${trx.book.title}" class="book-cover" style="width: 50px; height: 75px; object-fit: cover; border-radius: 6px;">`
+                                    : `<div class="book-cover-placeholder" style="width: 50px; height: 75px; display: flex; align-items: center; justify-content: center; background: var(--dark-bg); border-radius: 6px;"><i class="fas fa-book"></i></div>`
+                                }
+                                <div>
+                                    <h6 class="mb-1">${trx.book?.title || 'N/A'}</h6>
+                                    <p class="text-secondary small">ISBN: ${trx.book?.isbn || '-'}</p>
+                                    ${trx.book?.price && !trx.book?.is_free ? `<p class="text-primary small fw-bold">${formatCurrency(trx.book.price)}</p>` : '<span class="badge badge-success small">FREE</span>'}
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>${formatDate(trx.transaction_date || trx.borrow_date)}</td>
-                    <td>${formatDate(trx.due_date)}</td>
-                    <td>
-                        <span class="badge badge-${trx.status === 'active' ? 'success' : trx.status === 'completed' ? 'info' : 'danger'}">
-                            ${trx.status === 'active' ? 'Active' : trx.status === 'completed' ? 'Completed' : trx.status.charAt(0).toUpperCase() + trx.status.slice(1)}
-                        </span>
-                    </td>
-                    <td>
-                        ${trx.status === 'active'
-                            ? `<button class="btn btn-sm btn-success" onclick="returnBook(${trx.id})">
-                                <i class="fas fa-undo me-1"></i> Return
-                               </button>`
-                            : `<span class="text-secondary"><i class="fas fa-check"></i> Returned</span>`
-                        }
-                    </td>
-                </tr>
-            `).join('');
+                        </td>
+                        <td>${formatDate(trx.transaction_date)}</td>
+                        <td>${formatDate(trx.due_date)}</td>
+                        <td>
+                            <span class="badge badge-${getStatusBadgeClass(trx.status)}">
+                                ${getStatusText(trx.status)}
+                            </span>
+                        </td>
+                        <td>${actionButton}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Open payment modal
+        function openPaymentModal(transactionId) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN
+            };
+
+            if (AUTH_TOKEN && AUTH_TOKEN !== 'null' && AUTH_TOKEN !== 'undefined') {
+                headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+            }
+
+            fetch(`${API_URL}/transactions/${transactionId}`, {
+                headers: headers,
+                credentials: 'same-origin'
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const trx = result.data;
+                    currentTransactionForPayment = trx;
+
+                    document.getElementById('transactionId').value = trx.id;
+                    document.getElementById('modalBookTitle').textContent = trx.book?.title || 'Unknown';
+                    document.getElementById('modalAmount').textContent = formatCurrency(trx.book?.price || 0);
+
+                    // Reset file input
+                    document.getElementById('paymentProofFile').value = '';
+                    document.getElementById('previewImage').classList.add('d-none');
+                    document.getElementById('previewImage').src = '';
+
+                    const modal = new bootstrap.Modal(document.getElementById('paymentProofModal'));
+                    modal.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading transaction:', error);
+                showAlert('Failed to load transaction details', 'error');
+            });
+        }
+
+        // Submit payment proof
+        async function submitPaymentProof() {
+            const fileInput = document.getElementById('paymentProofFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showAlert('Please select a payment proof image', 'error');
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+            if (!allowedTypes.includes(file.type)) {
+                showAlert('Please upload a PNG or JPG image', 'error');
+                return;
+            }
+
+            // Validate file size (2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showAlert('File size must be less than 2MB', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('transaction_id', document.getElementById('transactionId').value);
+            formData.append('amount', currentTransactionForPayment.book?.price || 0);
+            formData.append('proof', file);
+            formData.append('_token', CSRF_TOKEN);
+
+            try {
+                const response = await fetch(`${API_URL}/payments`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Payment proof uploaded successfully! Waiting for admin approval.', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('paymentProofModal'));
+                    modal.hide();
+                    loadHistory();
+                } else {
+                    showAlert(result.message || 'Failed to upload payment proof', 'error');
+                }
+            } catch (error) {
+                console.error('Error uploading payment proof:', error);
+                showAlert('Failed to upload payment proof', 'error');
+            }
         }
 
         // Return book function
@@ -397,6 +678,57 @@
                 console.error('Error returning book:', error);
                 showAlert('Failed to return book', 'error');
             }
+        }
+
+        // Upload area click handler
+        document.getElementById('uploadArea')?.addEventListener('click', () => {
+            document.getElementById('paymentProofFile').click();
+        });
+
+        // File input change handler
+        document.getElementById('paymentProofFile')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('previewImage');
+                    preview.src = e.target.result;
+                    preview.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop handlers
+        const uploadArea = document.getElementById('uploadArea');
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+
+                const file = e.dataTransfer.files[0];
+                if (file && ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                    document.getElementById('paymentProofFile').files = e.dataTransfer.files;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const preview = document.getElementById('previewImage');
+                        preview.src = e.target.result;
+                        preview.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    showAlert('Please drop a PNG or JPG image', 'error');
+                }
+            });
         }
 
         // Load history on page load

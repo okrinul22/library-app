@@ -54,6 +54,11 @@ class Book extends Model
         return $this->hasOne(Content::class);
     }
 
+    public function firstChapter()
+    {
+        return $this->hasOne(Content::class)->where('status', 'published')->orderBy('chapter', 'asc');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

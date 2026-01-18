@@ -84,12 +84,12 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Completed Today</div>
-                            <div class="h5 mb-0 font-weight-bold text-white" id="completedToday">-</div>
+                                Total Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-white" id="totalRevenue">-</div>
                         </div>
                         <div class="col-auto">
                             <div class="stats-icon success">
-                                <i class="fas fa-check-circle fa-2x"></i>
+                                <i class="fas fa-money-bill-wave fa-2x"></i>
                             </div>
                         </div>
                     </div>
@@ -139,12 +139,12 @@
                     <thead>
                         <tr>
                             <th>Transaction ID</th>
-                            <th>User</th>
+                            <th>User (Member/Writer)</th>
                             <th>Book</th>
                             <th>Borrow Date</th>
                             <th>Due Date</th>
                             <th>Status</th>
-                            <th>Payment</th>
+                            <th>Payment Proof</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -216,56 +216,116 @@ function renderTransactionsTable(transactions) {
         return;
     }
 
-    tbody.innerHTML = transactions.map(trx => `
-        <tr>
-            <td>
-                <div class="fw-bold">${trx.transaction_id}</div>
-                <small class="text-secondary">ID: ${trx.id}</small>
-            </td>
-            <td>
-                <div class="fw-bold">${trx.user?.name || 'Unknown'}</div>
-                <small class="text-secondary">${trx.user?.email || ''}</small>
-            </td>
-            <td>
-                <div class="fw-bold">${trx.book?.title || 'Unknown'}</div>
-            </td>
-            <td>${formatDate(trx.borrow_date)}</td>
-            <td>${formatDate(trx.due_date)}</td>
-            <td>
-                <span class="badge badge-${getStatusBadgeClass(trx.status)}">
-                    ${trx.status.replace('_', ' ').toUpperCase()}
-                </span>
-            </td>
-            <td>
-                ${trx.payment
-                    ? `<div>
-                        <div class="fw-bold">${formatCurrency(trx.payment.amount)}</div>
-                        <span class="badge badge-${trx.payment.status === 'approved' ? 'success' : trx.payment.status === 'pending' ? 'warning' : 'danger'}" style="font-size: 10px;">
-                            ${trx.payment.status.toUpperCase()}
-                        </span>
-                       </div>`
-                    : `<small class="text-secondary">${trx.book?.is_free ? 'GRATIS' : '-'}</small>`
-                }
-            </td>
-            <td>
-                <div class="btn-group btn-group-sm" role="group">
-                    ${trx.status === 'active' ? `
-                        <button type="button" class="btn btn-info" onclick="viewPayment(${trx.id})" title="View">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button type="button" class="btn btn-warning" onclick="markReturned(${trx.id})" title="Mark Returned">
-                            <i class="fas fa-undo"></i>
-                        </button>
-                    ` : ''}
-                    ${trx.status !== 'completed' && trx.status !== 'cancelled' ? `
-                        <button type="button" class="btn btn-danger" onclick="deleteTransaction(${trx.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = transactions.map(trx => {
+        // Determine user type (Member/Writer)
+        const userType = trx.user?.role || 'Member';
+        const userDisplay = trx.user?.name || 'Unknown';
+
+        // Payment proof display - show thumbnail image
+        let paymentProof = '';
+        if (trx.book?.is_free) {
+            paymentProof = '<span class="badge badge-success">FREE</span>';
+        } else if (trx.payment?.proof) {
+            paymentProof = `
+                <a href="#" onclick="viewPayment(${trx.id}); return false;" title="Click to view full proof">
+                    <img src="/storage/${trx.payment.proof}" alt="Proof"
+                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid var(--dark-border);">
+                </a>
+            `;
+        } else if (trx.status === 'pending_payment') {
+            paymentProof = '<small class="text-warning">Waiting for proof...</small>';
+        } else {
+            paymentProof = '<small class="text-secondary">-</small>';
+        }
+
+        // Build action buttons based on status
+        let actionButtons = '';
+
+        if (trx.status === 'pending_payment') {
+            // Pending payment - always show action buttons
+            actionButtons = `<div class="btn-group btn-group-sm" role="group">`;
+
+            // Show approve button if payment exists and is pending
+            if (trx.payment && trx.payment.status === 'pending') {
+                actionButtons += `
+                    <button type="button" class="btn btn-success btn-sm" onclick="approvePayment(${trx.payment.id})" title="Approve Payment">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="rejectPayment(${trx.payment.id})" title="Reject Payment">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            } else if (trx.payment && trx.payment.status === 'approved') {
+                actionButtons += `<span class="badge badge-success btn-sm"><i class="fas fa-check"></i> Approved</span>`;
+            } else if (trx.payment && trx.payment.status === 'rejected') {
+                actionButtons += `<span class="badge badge-danger btn-sm"><i class="fas fa-times"></i> Rejected</span>`;
+            }
+
+            actionButtons += `
+                <button type="button" class="btn btn-info btn-sm" onclick="viewPayment(${trx.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteTransaction(${trx.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>`;
+        } else if (trx.status === 'active') {
+            // Active transaction - show return and view buttons
+            actionButtons = `
+                <button type="button" class="btn btn-warning btn-sm" onclick="markReturned(${trx.id})" title="Mark Returned">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button type="button" class="btn btn-info btn-sm" onclick="viewPayment(${trx.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+        } else if (trx.status === 'completed') {
+            // Completed - just view
+            actionButtons = `
+                <button type="button" class="btn btn-info btn-sm" onclick="viewPayment(${trx.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+        } else {
+            // Other statuses - delete option
+            actionButtons = `
+                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteTransaction(${trx.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+        }
+
+        return `
+            <tr>
+                <td>
+                    <div class="fw-bold">${trx.transaction_id}</div>
+                    <small class="text-secondary">ID: ${trx.id}</small>
+                </td>
+                <td>
+                    <div class="fw-bold">${userDisplay}</div>
+                    <small class="badge badge-info" style="font-size: 9px;">${userType.toUpperCase()}</small>
+                    <br><small class="text-secondary">${trx.user?.email || ''}</small>
+                </td>
+                <td>
+                    <div class="fw-bold">${trx.book?.title || 'Unknown'}</div>
+                    ${trx.book?.price && !trx.book?.is_free ? `<small class="text-primary">${formatCurrency(trx.book.price)}</small>` : ''}
+                </td>
+                <td>${formatDate(trx.transaction_date)}</td>
+                <td>${formatDate(trx.due_date)}</td>
+                <td>
+                    <span class="badge badge-${getStatusBadgeClass(trx.status)}">
+                        ${trx.status.replace('_', ' ').toUpperCase()}
+                    </span>
+                </td>
+                <td>${paymentProof}</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        ${actionButtons}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function getStatusBadgeClass(status) {
@@ -287,7 +347,7 @@ async function loadStats() {
         document.getElementById('activeTransactions').textContent = stats.active_transactions || 0;
         document.getElementById('pendingPayments').textContent = stats.pending_payments || 0;
         document.getElementById('overdueTransactions').textContent = stats.overdue_transactions || 0;
-        document.getElementById('completedToday').textContent = '-';
+        document.getElementById('totalRevenue').textContent = formatCurrency(stats.total_revenue || 0);
     } catch (error) {
         console.error('Error loading stats:', error);
     }
@@ -611,12 +671,14 @@ function exportToPDF() {
         }
 
         doc.setFontSize(8);
-        doc.text(trx.transaction_id?.substring(0, 10) || trx.id, 16, yPosition + 5);
-        doc.text((trx.user?.name || 'Unknown').substring(0, 15), 30, yPosition + 5);
-        doc.text((trx.book?.title || 'Unknown').substring(0, 20), 70, yPosition + 5);
-        doc.text(formatDate(trx.borrow_date), 120, yPosition + 5);
-        doc.text(trx.status.replace('_', ' '), 150, yPosition + 5);
-        doc.text(formatCurrency(trx.book?.price || 0), 175, yPosition + 5);
+        doc.text(String(trx.transaction_id?.substring(0, 10) || trx.id), 16, yPosition + 5);
+        doc.text(String((trx.user?.name || 'Unknown').substring(0, 15)), 30, yPosition + 5);
+        doc.text(String((trx.book?.title || 'Unknown').substring(0, 20)), 70, yPosition + 5);
+        doc.text(String(formatDate(trx.borrow_date)), 120, yPosition + 5);
+        doc.text(String(trx.status.replace('_', ' ')), 150, yPosition + 5);
+        // Simple currency format for PDF
+        const price = trx.book?.price || 0;
+        doc.text('Rp ' + String(price), 175, yPosition + 5);
         yPosition += 7;
     });
 

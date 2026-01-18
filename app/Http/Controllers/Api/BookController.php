@@ -341,10 +341,9 @@ class BookController extends Controller
     /**
      * Borrow book (with payment proof upload)
      */
-    public function borrowBook(Request $request)
+    public function borrowBook(Request $request, $bookId)
     {
         $validator = Validator::make($request->all(), [
-            'book_id' => 'required|exists:books,id',
             'payment_proof' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
         ]);
 
@@ -355,7 +354,7 @@ class BookController extends Controller
             ], 422);
         }
 
-        $book = Book::find($request->book_id);
+        $book = Book::find($bookId);
 
         if (!$book) {
             return response()->json([
@@ -468,6 +467,34 @@ class BookController extends Controller
             'success' => true,
             'message' => 'Buku berhasil dipinjam',
             'data' => $transaction->load(['book', 'user'])
+        ]);
+    }
+
+    /**
+     * Get novel structure (contents/chapters) for a book
+     */
+    public function novelStructure($bookId)
+    {
+        $book = Book::find($bookId);
+
+        if (!$book) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Buku tidak ditemukan'
+            ], 404);
+        }
+
+        $contents = Content::where('book_id', $bookId)
+            ->orderBy('chapter', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->get(['id', 'title', 'chapter', 'status', 'created_at']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'book' => $book,
+                'contents' => $contents
+            ]
         ]);
     }
 

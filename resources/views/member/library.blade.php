@@ -499,7 +499,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" id="submitBorrowBtn" class="btn btn-primary">
+                    <button type="button" id="submitBorrowBtn" class="btn btn-primary" onclick="submitBorrowForm()">
                         <span class="btn-text">Submit & Borrow</span>
                         <span class="spinner-border spinner-border-sm d-none" role="status">
                             <span class="visually-hidden">Loading...</span>
@@ -842,13 +842,14 @@
             const bookId = document.getElementById('borrowBookId').value;
             const proofFile = document.getElementById('paymentProof').files[0];
 
+            console.log('Submitting borrow form:', { bookId, proofFile });
+
             if (!proofFile) {
                 showAlert('Please upload payment proof', 'error');
                 return;
             }
 
             const formData = new FormData();
-            formData.append('book_id', bookId);
             formData.append('payment_proof', proofFile);
 
             const headers = {
@@ -869,14 +870,20 @@
             spinner.classList.remove('d-none');
 
             try {
-                const response = await fetch(`${API_URL}/member/books/${bookId}/borrow`, {
+                const url = `${API_URL}/member/books/${bookId}/borrow`;
+                console.log('Sending request to:', url);
+
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: headers,
                     body: formData,
                     credentials: 'same-origin'
                 });
 
+                console.log('Response status:', response.status);
+
                 const result = await response.json();
+                console.log('Response data:', result);
 
                 if (result.success) {
                     showAlert('Book borrowed successfully! Waiting for admin approval.', 'success');
@@ -888,7 +895,7 @@
                 }
             } catch (error) {
                 console.error('Error borrowing book:', error);
-                showAlert('Failed to borrow book', 'error');
+                showAlert('Failed to borrow book: ' + error.message, 'error');
             } finally {
                 submitBtn.disabled = false;
                 btnText.classList.remove('d-none');

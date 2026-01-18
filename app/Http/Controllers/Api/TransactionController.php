@@ -45,8 +45,8 @@ class TransactionController extends Controller
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|exists:users,id',
             'book_id' => 'required|exists:books,id',
-            'borrow_date' => 'required|date',
-            'due_date' => 'required|date|after:borrow_date'
+            'transaction_date' => 'required|date',
+            'due_date' => 'required|date|after:transaction_date'
         ]);
 
         if ($validator->fails()) {
@@ -68,7 +68,7 @@ class TransactionController extends Controller
         $transaction = Transaction::create([
             'user_id' => $request->user_id,
             'book_id' => $request->book_id,
-            'borrow_date' => $request->borrow_date,
+            'transaction_date' => $request->transaction_date,
             'due_date' => $request->due_date,
             'status' => 'active',
             'transaction_id' => 'TRX-' . strtoupper(uniqid())
@@ -120,8 +120,8 @@ class TransactionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'status' => 'sometimes|required|in:active,completed,overdue,cancelled',
-            'borrow_date' => 'sometimes|required|date',
-            'due_date' => 'sometimes|required|date|after:borrow_date',
+            'transaction_date' => 'sometimes|required|date',
+            'due_date' => 'sometimes|required|date|after:transaction_date',
             'return_date' => 'nullable|date'
         ]);
 
@@ -132,7 +132,7 @@ class TransactionController extends Controller
             ], 422);
         }
 
-        $data = $request->only(['status', 'borrow_date', 'due_date', 'return_date']);
+        $data = $request->only(['status', 'transaction_date', 'due_date', 'return_date']);
         $transaction->update($data);
 
         return response()->json([
@@ -273,7 +273,7 @@ class TransactionController extends Controller
         $transaction = Transaction::create([
             'user_id' => $request->user()->id,
             'book_id' => $book->id,
-            'borrow_date' => now(),
+            'transaction_date' => now(),
             'due_date' => now()->addDays(14),
             'status' => $book->is_free ? 'active' : 'pending_payment',
             'transaction_id' => 'TRX-' . strtoupper(uniqid())
@@ -295,7 +295,7 @@ class TransactionController extends Controller
     public function memberHistory(Request $request)
     {
         $transactions = Transaction::where('user_id', $request->user()->id)
-            ->with(['book', 'payment'])
+            ->with(['book.firstChapter', 'payment'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->per_page ?? 15);
 

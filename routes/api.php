@@ -25,6 +25,7 @@ Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
 Route::get('/dashboard/book-status', [DashboardController::class, 'bookStatus']);
 Route::get('/books', [BookController::class, 'index']);
 Route::get('/books/{id}', [BookController::class, 'show']);
+Route::get('/books/{book}/novel-structure', [BookController::class, 'novelStructure']);
 Route::get('/transactions', [TransactionController::class, 'index']);
 Route::get('/transactions/{id}', [TransactionController::class, 'show']);
 Route::get('/alerts', [DashboardController::class, 'alerts']);
@@ -32,6 +33,17 @@ Route::get('/messages', [DashboardController::class, 'messages']);
 Route::get('/contents', [ContentController::class, 'index']);
 Route::get('/contents/{id}', [ContentController::class, 'show']);
 Route::get('/contents/{content}/preview', [ContentController::class, 'preview']);
+
+// Member routes (session-based auth for web interface)
+Route::middleware('auth')->group(function () {
+    Route::get('/member/books', [BookController::class, 'memberIndex']);
+    Route::get('/member/books/{book}', [BookController::class, 'memberShow']);
+    Route::post('/member/books/{book}/borrow', [BookController::class, 'borrowBook']);
+    Route::post('/member/books/{book}/borrow-free', [BookController::class, 'borrowFreeBook']);
+    Route::get('/member/history', [TransactionController::class, 'memberHistory']);
+    Route::get('/member/profile', [DashboardController::class, 'memberProfile']);
+    Route::put('/member/profile', [DashboardController::class, 'updateProfile']);
+});
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -84,17 +96,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Messages
     Route::get('/messages', [DashboardController::class, 'messages']);
     Route::post('/messages/{message}/read', [DashboardController::class, 'markAsRead']);
-});
-
-// Member routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/member/books', [BookController::class, 'memberIndex']);
-    Route::get('/member/books/{book}', [BookController::class, 'memberShow']);
-    Route::post('/member/books/{book}/borrow', [BookController::class, 'borrowBook']);
-    Route::post('/member/books/{book}/borrow-free', [BookController::class, 'borrowFreeBook']);
-    Route::get('/member/history', [TransactionController::class, 'memberHistory']);
-    Route::get('/member/profile', [DashboardController::class, 'memberProfile']);
-    Route::put('/member/profile', [DashboardController::class, 'updateProfile']);
 });
 
 // Writer routes

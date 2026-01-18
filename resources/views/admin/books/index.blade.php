@@ -159,11 +159,11 @@ function renderBooksGrid(books) {
                     }
                 </div>
                 <div class="card-body">
-                    <h5 class="card-title text-truncate" title="${book.title}">${book.title}</h5>
-                    <p class="card-text text-secondary mb-2"><small>${book.author}</small></p>
+                    <h5 class="card-title text-truncate text-white" title="${book.title}">${book.title}</h5>
+                    <p class="card-text text-white mb-2"><small>${book.author}</small></p>
                     <p class="card-text"><span class="badge badge-secondary">${book.genre}</span></p>
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="text-secondary">Stok: ${book.stock}</small>
+                        <small class="text-white">Stok: ${book.stock}</small>
                         <span class="badge badge-${book.stock > 5 ? 'success' : book.stock > 0 ? 'warning' : 'danger'}">
                             ${book.stock > 5 ? 'Tersedia' : book.stock > 0 ? 'Terbatas' : 'Habis'}
                         </span>
@@ -208,28 +208,28 @@ async function viewBook(id) {
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <h4>${book.title}</h4>
-                    <p class="text-secondary mb-3">${book.author}</p>
+                    <h4 class="text-white">${book.title}</h4>
+                    <p class="text-white mb-3">${book.author}</p>
 
                     <div class="row mb-3">
                         <div class="col-sm-6 mb-2">
-                            <label class="text-secondary small">ISBN</label>
-                            <div class="fw-bold">${book.isbn}</div>
+                            <label class="text-white small">ISBN</label>
+                            <div class="fw-bold text-white">${book.isbn}</div>
                         </div>
                         <div class="col-sm-6 mb-2">
-                            <label class="text-secondary small">Genre</label>
+                            <label class="text-white small">Genre</label>
                             <div><span class="badge badge-secondary">${book.genre}</span></div>
                         </div>
                         <div class="col-sm-6 mb-2">
-                            <label class="text-secondary small">Harga</label>
-                            <div class="fw-bold">${book.is_free ? 'GRATIS' : formatCurrency(book.price)}</div>
+                            <label class="text-white small">Harga</label>
+                            <div class="fw-bold text-white">${book.is_free ? 'GRATIS' : formatCurrency(book.price)}</div>
                         </div>
                         <div class="col-sm-6 mb-2">
-                            <label class="text-secondary small">Stok</label>
-                            <div class="fw-bold">${book.stock} unit</div>
+                            <label class="text-white small">Stok</label>
+                            <div class="fw-bold text-white">${book.stock} unit</div>
                         </div>
                         <div class="col-sm-6 mb-2">
-                            <label class="text-secondary small">Status</label>
+                            <label class="text-white small">Status</label>
                             <div>
                                 <span class="badge badge-${book.stock > 5 ? 'success' : book.stock > 0 ? 'warning' : 'danger'}">
                                     ${book.stock > 5 ? 'In Stock' : book.stock > 0 ? 'Low Stock' : 'Out of Stock'}
@@ -237,7 +237,7 @@ async function viewBook(id) {
                             </div>
                         </div>
                         <div class="col-sm-6 mb-2">
-                            <label class="text-secondary small">Tipe</label>
+                            <label class="text-white small">Tipe</label>
                             <div>
                                 ${book.is_free
                                     ? '<span class="badge badge-success">GRATIS</span>'
@@ -249,8 +249,8 @@ async function viewBook(id) {
 
                     ${book.description ? `
                         <div class="mb-3">
-                            <label class="text-secondary small">Deskripsi</label>
-                            <p class="text-secondary">${book.description}</p>
+                            <label class="text-white small">Deskripsi</label>
+                            <p class="text-white">${book.description}</p>
                         </div>
                     ` : ''}
 
@@ -260,7 +260,7 @@ async function viewBook(id) {
                                 <i class="fas fa-file-alt"></i> Lihat Konten
                             </a>
                         </div>
-                    ` : '<p class="text-secondary small">Belum ada konten</p>'}
+                    ` : '<p class="text-white small">Belum ada konten</p>'}
                 </div>
             </div>
         `;
